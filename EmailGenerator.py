@@ -2,6 +2,9 @@
 import anthropic
 import streamlit as st
 import re
+import requests
+import json
+
 
 
 client = anthropic.Anthropic(
@@ -31,13 +34,13 @@ def submit_prompt(prompt, system_prompt):
                 ])
     return message.content
 
-def generate_email(linkedin_url, email_tone, num_words, email_context, feedback=""):
+def generate_email(profile_data, email_tone, num_words, email_context, feedback=""):
     prompt = "ok"
     system_prompt = f"""
       When the user enter "ok" RUN the following prompt:
         <instruction>
         You are a Email Generator, your only goal is to formulate a clear email with its subject based on the following attributes:
-        Candidate Information: {linkedin_url}
+        Candidate Information: provided a scraped linkedin profile as a json format of the candidate : {profile_data}
         The Email Tone : {email_tone}
         Number of words: {num_words}
         The Email Context: {email_context}
@@ -57,6 +60,13 @@ if __name__ == "__main__":
 
     # Text input for LinkedIn URL   
     linkedin_url = st.text_input("Enter LinkedIn URL:")
+    api_key1 = st.secrets["api_key1"]
+    headers = {'Authorization': 'Bearer ' + api_key1}
+    api_endpoint = 'https://nubela.co/proxycurl/api/v2/linkedin'
+    linkedin_profile_url = linkedin_url
+    response1 = requests.get(api_endpoint, params={'url': linkedin_profile_url}, headers=headers)
+    profile_data = response1.json()
+   
     if linkedin_url:
         st.write(f"LinkedIn URL: {linkedin_url}")
 
@@ -74,7 +84,7 @@ if __name__ == "__main__":
 
     # Button to generate email
     if st.button("Generate Email"):
-        generated_email = generate_email(linkedin_url, email_tone, num_words, email_context)
+        generated_email = generate_email(profile_data, email_tone, num_words, email_context)
         st.session_state.generated_email = return_goodFormat(list_to_string(generated_email))
 
     # Display generated email
@@ -88,6 +98,6 @@ if __name__ == "__main__":
 
         # Button to regenerate email based on feedback
         if st.button("Regenerate Email"):
-            regenerated_email = generate_email(linkedin_url, email_tone, num_words, email_context, feedback)
+            regenerated_email = generate_email(profile_data, email_tone, num_words, email_context, feedback)
             st.session_state.generated_email = return_goodFormat(list_to_string(regenerated_email))
             st.experimental_rerun()
